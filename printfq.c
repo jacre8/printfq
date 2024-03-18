@@ -830,14 +830,10 @@ int main(int argc, char **argv)
 				}
 				while(0 < c);
 			}
-			else {
+			else
 				fputs_unlocked("''", stdout);
-			}
 		} while(0 == c && EOF != (c = getUtf8CodePoint()) ? ({
 				unsigned lc = ignoreNullInput || (
-					//  When nullTerminatedOutput, if there's no more input after the last
-					// argument's input termination, loop so that the 0 > c condition below
-					// will terminate the last argument.
 					nullTerminatedOutput ? EOF != putc_unlocked(0, stdout) && (
 						! flushArguments || EOF != fflush_unlocked(stdout)
 					) : EOF != putc_unlocked(' ', stdout)

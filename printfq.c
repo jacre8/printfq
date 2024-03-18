@@ -17,7 +17,7 @@
 #warning The Unicode code point mapping has not been tested in this configuration!
 #endif
 
-const char versionString[] = "printfq version 1";
+const char versionString[] = "printfq version 2";
 
 #define _GNU_SOURCE
 #include <ctype.h>  // isprint()
@@ -631,9 +631,7 @@ int main(int argc, char **argv)
 							if(3 > getUtf8BuffLength)
 								getUtf8Buff[2] = getc_unlocked(stdin);
 							if(*getUtf8Buff & 0x10) {
-								if(*getUtf8Buff & 0x8)
-									bytesInCodePoint = 0;
-								else {
+								if(! (*getUtf8Buff & 0x8)) {
 									//  Exactly 4 characters are expected
 									if(4 > getUtf8BuffLength)
 										getUtf8Buff[3] = getc_unlocked(stdin);
@@ -693,6 +691,8 @@ int main(int argc, char **argv)
 								bytesInCodePoint = 2;
 								if(1 < getUtf8BuffLength)
 									getUtf8BuffLength -= 2;
+								else
+									getUtf8BuffLength = 0;
 								goto setCbuff1;
 							}
 							if(2 > getUtf8BuffLength)

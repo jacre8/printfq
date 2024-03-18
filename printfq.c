@@ -4,7 +4,7 @@
 // printf.  Multiple strings may be provided as arguments or, if there are no arguments, via
 // stdin.
 
-#define PRINTFQ_VERSION_STRING "1"
+#define PRINTFQ_VERSION_STRING "3"
 
 #define PRINTFQ_VERSION_STRING_LONG "printfq version " PRINTFQ_VERSION_STRING \
 "\nCopyright (C) 2024 Jason Hinsch\n" \
@@ -17,7 +17,7 @@
 #warning The Unicode code point mapping has not been tested in this configuration!
 #endif
 
-const char versionString[] = "printfq version 2";
+const char versionString[] = "printfq version 3";
 
 #define _GNU_SOURCE
 #include <ctype.h>  // isprint()
@@ -220,8 +220,10 @@ int main(int argc, char **argv)
 					"  but breaks compatibility with busybox sh.  This option does nothing in the C\n"
 					"  locale or if --minimal is also specified\n"
 					" -z, --null-terminated-output\n"
-					"    Instead of using space characters to delimit arguments/strings, terminate\n"
-					"  all arguments/strings in the output, including the last, with null characters\n"
+					"    Instead of using space characters to delimit output arguments, delimit\n"
+					"  output arguments with null characters.  The last output argument will also be\n"
+					"  null terminated if it is terminated in input, if --ignore-null-input is\n"
+					"  specified, or if the input comes from non-option arguments\n"
 					" --\n"
 					"    End of input.  Use this to protect input arguments from option processing\n"
 					" --help\n"
@@ -388,22 +390,28 @@ int main(int argc, char **argv)
 			}
 			else
 				fputs_unlocked("''", stdout);
-		} while(0 == c && EOF != (c = getc_unlocked(stdin)) ? ({
-				unsigned rc = ignoreNullInput || (
-					nullTerminatedOutput ? EOF != putc_unlocked(0, stdout) && (
-						! flushArguments || EOF != fflush_unlocked(stdout)
-					) : EOF != putc_unlocked(' ', stdout)
-				);
-				if('~' == c && rc) {
-					isPrintable = 1;
-					goto narrowCharStartEscape;
-				}
-				rc;
-			}) : ({
-				if(nullTerminatedOutput)
+		} while(0 == c ? (EOF != (c = getc_unlocked(stdin)) ? ({
+					unsigned rc = ignoreNullInput || (
+						nullTerminatedOutput ? EOF != putc_unlocked(0, stdout) && (
+							! flushArguments || EOF != fflush_unlocked(stdout)
+						) : EOF != putc_unlocked(' ', stdout)
+					);
+					if('~' == c && rc) {
+						isPrintable = 1;
+						goto narrowCharStartEscape;
+					}
+					rc;
+				}) : ({
+					if(nullTerminatedOutput)
+						putc_unlocked(0, stdout);
+					0;
+				})
+			) : ({
+				if(ignoreNullInput && nullTerminatedOutput)
 					putc_unlocked(0, stdout);
 				0;
-		}));
+			})
+		);
 	}
 	else if(localeIsNotUtf8) {
 		//  The locale does not use UTF-8 encoding.  Deference is given to the library
@@ -568,22 +576,28 @@ int main(int argc, char **argv)
 			}
 			else
 				fputws_unlocked(L"''", stdout);
-		} while(0 == c && WEOF != (c = getwc_unlocked(stdin)) ? ({
-				unsigned lc = ignoreNullInput || (
-					nullTerminatedOutput ? WEOF != putwc_unlocked(L'\000', stdout) && (
-						! flushArguments || EOF != fflush_unlocked(stdout)
-					) : (WEOF != c && WEOF != putwc_unlocked(L' ', stdout))
-				);
-				if(L'~' == c && lc) {
-					isPrintable = 1;
-					goto wideCharStartEscape;
-				}
-				lc;
-			}) : ({
-				if(nullTerminatedOutput)
+		} while(0 == c ? (WEOF != (c = getwc_unlocked(stdin)) ? ({
+					unsigned lc = ignoreNullInput || (
+						nullTerminatedOutput ? WEOF != putwc_unlocked(L'\000', stdout) && (
+							! flushArguments || EOF != fflush_unlocked(stdout)
+						) : (WEOF != c && WEOF != putwc_unlocked(L' ', stdout))
+					);
+					if(L'~' == c && lc) {
+						isPrintable = 1;
+						goto wideCharStartEscape;
+					}
+					lc;
+				}) : ({
+					if(nullTerminatedOutput)
+						putwc_unlocked(0, stdout);
+					0;
+				})
+			) : ({
+				if(ignoreNullInput && nullTerminatedOutput)
 					putwc_unlocked(0, stdout);
 				0;
-		}));
+			})
+		);
 		if(EILSEQ == errno)
 			return EILSEQ;
 	}
@@ -832,22 +846,28 @@ int main(int argc, char **argv)
 			}
 			else
 				fputs_unlocked("''", stdout);
-		} while(0 == c && EOF != (c = getUtf8CodePoint()) ? ({
-				unsigned lc = ignoreNullInput || (
-					nullTerminatedOutput ? EOF != putc_unlocked(0, stdout) && (
-						! flushArguments || EOF != fflush_unlocked(stdout)
-					) : EOF != putc_unlocked(' ', stdout)
-				);
-				if('~' == c && lc) {
-					isPrintable = 1;
-					goto utf8StartEscape;
-				}
-				lc;
-			}) : ({
-				if(nullTerminatedOutput)
+		} while(0 == c ? (EOF != (c = getUtf8CodePoint()) ? ({
+					unsigned lc = ignoreNullInput || (
+						nullTerminatedOutput ? EOF != putc_unlocked(0, stdout) && (
+							! flushArguments || EOF != fflush_unlocked(stdout)
+						) : EOF != putc_unlocked(' ', stdout)
+					);
+					if('~' == c && lc) {
+						isPrintable = 1;
+						goto utf8StartEscape;
+					}
+					lc;
+				}) : ({
+					if(nullTerminatedOutput)
+						putc_unlocked(0, stdout);
+					0;
+				})
+			) : ({
+				if(ignoreNullInput && nullTerminatedOutput)
 					putc_unlocked(0, stdout);
 				0;
-		}));
+			})
+		);
 	}
 	return 0;
 }

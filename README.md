@@ -69,14 +69,17 @@ Command Synopsis
 	  but breaks compatibility with busybox sh.  This option does nothing in the C
 	  locale or if --minimal is also specified
 	 -z, --null-terminated-output
-	    Instead of using space characters to delimit arguments/strings, terminate
-	  all arguments/strings in the output, including the last, with null characters
+	    Instead of using space characters to delimit output arguments, delimit
+	  output arguments with null characters.  The last output argument will also be
+	  null terminated if it is terminated in input, if --ignore-null-input is
+	  specified, or if the input comes from non-option arguments
 	 --
 	    End of input.  Use this to protect input arguments from option processing
 	 --help
 	    This output
 	 --version
 	    Version information
+
 
 Building and Installing
 -----------------------

@@ -89,3 +89,39 @@ glibc.  To build and install:
 
 	make
 	sudo make install
+
+
+Tricks
+------
+
+The output is reversible using eval.  Although this first example will append
+a null character when the source file does not end with one, it is simple:  
+
+	printfq < data > quoted_data
+	eval "printf %s\\\\0 $(< quoted_data)" > restored_data
+
+A shell's builtins generally have a liberal limit on the size and number of
+arguments, so it is possible to generate a relatively human readable binary
+patch this way.  This example faithfully recreates binary_new from binary_old
+using pq_binary.patch:  
+
+	LANG=C printfq -z < binary_old | tr \\0 \\n > pq_binary_old
+	diff pq_binary_old <(LANG=C printfq -z < binary_new | tr \\0 \\n) > pq_binary.patch
+	patch -r - -n -N pq_binary_old pq_binary.patch
+	#  If there's no newline at the end of pq_binary_old,
+	# trim the extra null character output by the printf command
+	if [ "$(tail -n1 pq_binary_old | hexdump -e '"%X"')" = A ];then
+		eval "printf %s\\\\0 $(cat pq_binary_old | tr \\n ' ')"
+	else
+		eval "printf %s\\\\0 $(cat pq_binary_old | tr \\n ' ')" | head -c-1
+	fi > patched_binary
+
+It is not necessary to specify LANG=C for this example to work, although it
+does make the patch more readable.  The --minimal option does not work for
+this use case since it passes newlines into the output.  The shell used to
+restore the patched file must recognize ANSI-C escapes ($'').  Aside from
+the input file redirection used in the diff command, this works in busybox.
+
+Neat as this example may be, it is not very useful for deploying changes as-is.
+The patch typically ends up being larger than the resulting file, even without
+specifying LANG=C, with similar binaries, and with compression.
